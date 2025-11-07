@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>资产管理系统</title>
+
+  <!-- Tailwind & Chart.js & Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- QuaggaJS for Barcode Scanning -->
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+
+  <style>
+    body{box-sizing:border-box;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
+    .glass-effect{background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);}
+    .gradient-bg{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;}
+    .card-hover{transition:all .4s cubic-bezier(.175,.885,.32,1.275);}
+    .card-hover:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 25px 50px rgba(0,0,0,.15);}
+    .stat-gradient-1{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+    .stat-gradient-2{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);}
+    .stat-gradient-3{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);}
+    .stat-gradient-4{background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);}
+    .floating{animation:floating 3s ease-in-out infinite;}
+    @keyframes floating{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .slide-in{animation:slideIn .6s ease-out;}
+    @keyframes slideIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    .chart-container{position:relative;height:300px;}
+    .modern-input{background:rgba(255,255,255,0.9);border:2px solid transparent;transition:all .3s;}
+    .modern-input:focus{background:#fff;border-color:#667eea;box-shadow:0 0 0 4px rgba(102,126,234,.1);}
+    .modern-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);transition:all .3s;position:relative;overflow:hidden;}
+    .modern-btn:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(102,126,234,.3);}
+    .modern-btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:left .5s;}
+    .modern-btn:hover::before{left:100%;}
+    .status-badge{display:inline-block;padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;}
+    .status-available{background:#d1fae5;color:#065f46;}
+    .status-borrowed{background:#fef3c7;color:#92400e;}
+    .status-maintenance{background:#fecaca;color:#991b1b;}
+    .status-scrapped{background:#e5e7eb;color:#374151;}
+    #barcode-scanner{width:100%;max-width:500px;height:300px;border:2px solid #667eea;border-radius:12px;}
+    .tab-button{padding:0.75rem 1.5rem;border-radius:0.75rem;font-weight:600;transition:all 0.3s;}
+    .tab-button.active{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;box-shadow:0 4px 12px rgba(102,126,234,.3);}
+    .tab-button:not(.active){color:#6b7280;}
+    .tab-button:not(.active):hover{background:rgba(102,126,234,0.1);}
+  </style>
+</head>
+<body class="gradient-bg">
+  <div class="min-h-screen p-6">
+    <!-- 顶部标题栏 -->
+    <div class="glass-effect rounded-2xl p-6 mb-6 slide-in">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="floating">
+            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-lg">📦</div>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800">资产管理系统</h1>
+            <p class="text-gray-600">Asset Management System</p>
+          </div>
+        </div>
+        <div class="flex space-x-3">
+          <button onclick="openAddAssetModal()" class="modern-btn text-white px-6 py-3 rounded-xl font-medium">
+            ➕ 新增资产
+          </button>
+          <button onclick="openBarcodeScanner()" class="modern-btn text-white px-6 py-3 rounded-xl font-medium">
+            📷 扫描条码
+          </button>
+          <button onclick="openInventoryModal()" class="modern-btn text-white px-6 py-3 rounded-xl font-medium">
+            📋 盘点
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 slide-in">
+      <div class="glass-effect rounded-2xl p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+          <div class="stat-gradient-1 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+            </svg>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-600 mb-1">总资产数</h3>
+        <p id="totalAssets" class="text-3xl font-bold text-gray-800">0</p>
+        <p class="text-xs text-gray-500 mt-1">全部资产</p>
+      </div>
+      <div class="glass-effect rounded-2xl p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+          <div class="stat-gradient-2 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-600 mb-1">可用资产</h3>
+        <p id="availableAssets" class="text-3xl font-bold text-gray-800">0</p>
+        <p class="text-xs text-gray-500 mt-1">可借用</p>
+      </div>
+      <div class="glass-effect rounded-2xl p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+          <div class="stat-gradient-3 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-600 mb-1">已借出</h3>
+        <p id="borrowedAssets" class="text-3xl font-bold text-gray-800">0</p>
+        <p class="text-xs text-gray-500 mt-1">使用中</p>
+      </div>
+      <div class="glass-effect rounded-2xl p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+          <div class="stat-gradient-4 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-600 mb-1">维修中</h3>
+        <p id="maintenanceAssets" class="text-3xl font-bold text-gray-800">0</p>
+        <p class="text-xs text-gray-500 mt-1">维护保养</p>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="glass-effect rounded-2xl p-6 mb-6">
+      <!-- Tab 导航 -->
+      <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
+        <button onclick="switchTab('assets')" class="tab-button active" data-tab="assets">📦 资产列表</button>
+        <button onclick="switchTab('borrow')" class="tab-button" data-tab="borrow">📤 借用/归还</button>
+        <button onclick="switchTab('maintenance')" class="tab-button" data-tab="maintenance">🔧 维修记录</button>
+        <button onclick="switchTab('scrapped')" class="tab-button" data-tab="scrapped">🗑️ 报废管理</button>
+        <button onclick="switchTab('history')" class="tab-button" data-tab="history">📊 使用历史</button>
+        <button onclick="switchTab('charts')" class="tab-button" data-tab="charts">📈 统计分析</button>
+      </div>
+
+      <!-- 资产列表 Tab -->
+      <div id="tab-assets" class="tab-content">
+        <div class="mb-4 flex flex-wrap gap-3">
+          <input type="text" id="searchAsset" placeholder="搜索资产名称、编号..." class="modern-input px-4 py-2 rounded-xl flex-1 min-w-[200px]" oninput="filterAssets()">
+          <select id="filterCategory" class="modern-input px-4 py-2 rounded-xl" onchange="filterAssets()">
+            <option value="">所有分类</option>
+            <option value="电子设备">电子设备</option>
+            <option value="办公设备">办公设备</option>
+            <option value="家具">家具</option>
+            <option value="其他">其他</option>
+          </select>
+          <select id="filterStatus" class="modern-input px-4 py-2 rounded-xl" onchange="filterAssets()">
+            <option value="">所有状态</option>
+            <option value="available">可用</option>
+            <option value="borrowed">已借出</option>
+            <option value="maintenance">维修中</option>
+            <option value="scrapped">已报废</option>
+          </select>
+        </div>
+        <div id="assetsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- 借用/归还 Tab -->
+      <div id="tab-borrow" class="tab-content hidden">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-gray-800 mb-3">📤 借用资产</h3>
+          <form id="borrowForm" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">资产编号</label>
+                <input type="text" id="borrowAssetId" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="扫描或输入资产编号" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">借用人</label>
+                <input type="text" id="borrower" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="借用人姓名" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">借用日期</label>
+                <input type="date" id="borrowDate" class="modern-input w-full px-4 py-2 rounded-xl" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">预计归还日期</label>
+                <input type="date" id="returnDate" class="modern-input w-full px-4 py-2 rounded-xl" required>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+              <textarea id="borrowNote" class="modern-input w-full px-4 py-2 rounded-xl" rows="2" placeholder="借用原因或备注"></textarea>
+            </div>
+            <button type="submit" class="modern-btn text-white px-6 py-2 rounded-xl font-medium">确认借用</button>
+          </form>
+        </div>
+        <hr class="my-6 border-gray-300">
+        <div>
+          <h3 class="text-xl font-bold text-gray-800 mb-3">📥 归还资产</h3>
+          <div id="borrowedList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- 维修记录 Tab -->
+      <div id="tab-maintenance" class="tab-content hidden">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-gray-800 mb-3">🔧 新增维修记录</h3>
+          <form id="maintenanceForm" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">资产编号</label>
+                <input type="text" id="maintenanceAssetId" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="扫描或输入资产编号" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">维修日期</label>
+                <input type="date" id="maintenanceDate" class="modern-input w-full px-4 py-2 rounded-xl" required>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">故障描述</label>
+              <textarea id="maintenanceIssue" class="modern-input w-full px-4 py-2 rounded-xl" rows="2" placeholder="描述故障情况" required></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">维修方案</label>
+              <textarea id="maintenanceSolution" class="modern-input w-full px-4 py-2 rounded-xl" rows="2" placeholder="维修处理方案"></textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">维修费用</label>
+                <input type="number" id="maintenanceCost" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="维修费用（元）" min="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">维修状态</label>
+                <select id="maintenanceStatus" class="modern-input w-full px-4 py-2 rounded-xl">
+                  <option value="pending">待维修</option>
+                  <option value="processing">维修中</option>
+                  <option value="completed">已完成</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="modern-btn text-white px-6 py-2 rounded-xl font-medium">提交维修记录</button>
+          </form>
+        </div>
+        <hr class="my-6 border-gray-300">
+        <div>
+          <h3 class="text-xl font-bold text-gray-800 mb-3">维修记录列表</h3>
+          <div id="maintenanceList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- 报废管理 Tab -->
+      <div id="tab-scrapped" class="tab-content hidden">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-gray-800 mb-3">🗑️ 资产报废</h3>
+          <form id="scrapForm" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">资产编号</label>
+                <input type="text" id="scrapAssetId" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="扫描或输入资产编号" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">报废日期</label>
+                <input type="date" id="scrapDate" class="modern-input w-full px-4 py-2 rounded-xl" required>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">报废原因</label>
+              <textarea id="scrapReason" class="modern-input w-full px-4 py-2 rounded-xl" rows="3" placeholder="说明报废原因" required></textarea>
+            </div>
+            <button type="submit" class="modern-btn text-white px-6 py-2 rounded-xl font-medium bg-red-500 hover:bg-red-600">确认报废</button>
+          </form>
+        </div>
+        <hr class="my-6 border-gray-300">
+        <div>
+          <h3 class="text-xl font-bold text-gray-800 mb-3">已报废资产</h3>
+          <div id="scrappedList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- 使用历史 Tab -->
+      <div id="tab-history" class="tab-content hidden">
+        <div class="mb-4 flex gap-3">
+          <input type="text" id="historySearch" placeholder="搜索资产编号或借用人..." class="modern-input px-4 py-2 rounded-xl flex-1" oninput="filterHistory()">
+        </div>
+        <div id="historyList" class="space-y-3"></div>
+      </div>
+
+      <!-- 统计分析 Tab -->
+      <div id="tab-charts" class="tab-content hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-effect rounded-2xl p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">资产状态分布</h3>
+            <div class="chart-container"><canvas id="statusChart"></canvas></div>
+          </div>
+          <div class="glass-effect rounded-2xl p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">资产分类统计</h3>
+            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+          </div>
+          <div class="glass-effect rounded-2xl p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">月度借用趋势</h3>
+            <div class="chart-container"><canvas id="borrowTrendChart"></canvas></div>
+          </div>
+          <div class="glass-effect rounded-2xl p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">维修费用统计</h3>
+            <div class="chart-container"><canvas id="maintenanceCostChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增资产 Modal -->
+  <div id="addAssetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-2xl font-bold text-gray-800 mb-6">➕ 新增资产</h3>
+      <form id="assetForm" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">资产编号</label>
+            <input type="text" id="assetId" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="自动生成或手动输入" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">资产名称</label>
+            <input type="text" id="assetName" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="例如：投影仪" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">资产分类</label>
+            <select id="assetCategory" class="modern-input w-full px-4 py-2 rounded-xl" required>
+              <option value="">请选择</option>
+              <option value="电子设备">电子设备</option>
+              <option value="办公设备">办公设备</option>
+              <option value="家具">家具</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">条码号</label>
+            <input type="text" id="assetBarcode" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="扫描或输入条码">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">购买日期</label>
+            <input type="date" id="purchaseDate" class="modern-input w-full px-4 py-2 rounded-xl" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">购买价格（元）</label>
+            <input type="number" id="assetPrice" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">存放位置</label>
+            <input type="text" id="assetLocation" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="例如：A栋101">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">初始状态</label>
+            <select id="assetStatus" class="modern-input w-full px-4 py-2 rounded-xl">
+              <option value="available">可用</option>
+              <option value="maintenance">维修中</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">资产描述</label>
+          <textarea id="assetDescription" class="modern-input w-full px-4 py-2 rounded-xl" rows="3" placeholder="详细描述资产信息、规格、型号等"></textarea>
+        </div>
+        <div class="flex justify-end space-x-4 pt-4">
+          <button type="button" onclick="closeAddAssetModal()" class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium transition-colors">取消</button>
+          <button type="submit" class="modern-btn px-6 py-3 text-white rounded-xl font-medium">确认新增</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 条码扫描 Modal -->
+  <div id="barcodeScannerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-gray-800">📷 扫描条码</h3>
+        <button onclick="closeBarcodeScanner()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <div id="barcode-scanner" class="bg-gray-900 rounded-xl overflow-hidden"></div>
+        <div class="w-full">
+          <label class="block text-sm font-medium text-gray-700 mb-2">或手动输入条码：</label>
+          <input type="text" id="manualBarcode" class="modern-input w-full px-4 py-2 rounded-xl" placeholder="使用扫码枪或手动输入" autofocus>
+        </div>
+        <button onclick="searchAssetByBarcode()" class="modern-btn text-white px-6 py-3 rounded-xl font-medium w-full">查询资产</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 资产详情 Modal -->
+  <div id="assetDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="glass-effect rounded-2xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-gray-800">📦 资产详情</h3>
+        <button onclick="closeAssetDetail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div id="assetDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- 盘点 Modal -->
+  <div id="inventoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="glass-effect rounded-2xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-gray-800">📋 资产盘点</h3>
+        <button onclick="closeInventoryModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div class="mb-4">
+        <p class="text-gray-600 mb-2">盘点日期：<span id="inventoryDate" class="font-semibold"></span></p>
+        <div class="flex gap-3 mb-4">
+          <input type="text" id="inventoryBarcode" class="modern-input flex-1 px-4 py-2 rounded-xl" placeholder="扫描资产条码进行盘点" autofocus>
+          <button onclick="addToInventory()" class="modern-btn text-white px-6 py-2 rounded-xl font-medium">添加</button>
+          <button onclick="exportInventory()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl font-medium">导出报告</button>
+        </div>
+      </div>
+      <div id="inventoryList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ===============================
+       数据存储和管理
+    ================================ */
+    const STORAGE_KEY = 'assetManagementData';
+    let assetsData = {};
+    let charts = {};
+    let currentInventory = [];
+
+    // 加载数据
+    function loadData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          assetsData = JSON.parse(stored);
+        } else {
+          // 初始化示例数据
+          initDemoData();
+        }
+      } catch (e) {
+        console.error('加载数据失败', e);
+        assetsData = {};
+      }
+    }
+
+    // 保存数据
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(assetsData));
+      } catch (e) {
+        console.error('保存数据失败', e);
+        showMessage('保存失败！', 'error');
+      }
+    }
+
+    // 初始化示例数据
+    function initDemoData() {
+      const demoAssets = [
+        { id: 'ASSET-001', name: 'EPSON投影仪', category: '电子设备', barcode: 'BAR001', status: 'available', purchaseDate: '2023-01-15', price: 5000, location: 'A栋101', description: 'EPSON EB-S41 投影仪' },
+        { id: 'ASSET-002', name: '笔记本电脑', category: '电子设备', barcode: 'BAR002', status: 'borrowed', purchaseDate: '2023-03-20', price: 6500, location: 'B栋203', description: 'Dell Latitude 5420' },
+        { id: 'ASSET-003', name: 'iPad Pro', category: '电子设备', barcode: 'BAR003', status: 'available', purchaseDate: '2023-05-10', price: 7999, location: 'A栋102', description: 'iPad Pro 12.9英寸' },
+        { id: 'ASSET-004', name: '办公桌', category: '家具', barcode: 'BAR004', status: 'available', purchaseDate: '2022-08-01', price: 1200, location: 'C栋301', description: '实木办公桌 1.6米' },
+        { id: 'ASSET-005', name: '打印机', category: '办公设备', barcode: 'BAR005', status: 'maintenance', purchaseDate: '2022-11-15', price: 2800, location: 'A栋打印室', description: 'HP LaserJet Pro' }
+      ];
+
+      demoAssets.forEach(asset => {
+        assetsData[asset.id] = {
+          ...asset,
+          borrowHistory: [],
+          maintenanceHistory: [],
+          inventoryHistory: []
+        };
+      });
+
+      // 添加一些示例借用记录
+      assetsData['ASSET-002'].borrowHistory = [{
+        borrower: '张三',
+        borrowDate: '2024-11-01',
+        returnDate: '2024-11-15',
+        expectedReturnDate: '2024-11-15',
+        note: '开发项目使用',
+        status: 'borrowed'
+      }];
+
+      // 添加维修记录
+      assetsData['ASSET-005'].maintenanceHistory = [{
+        date: '2024-10-20',
+        issue: '打印质量下降，出现横纹',
+        solution: '更换硒鼓',
+        cost: 380,
+        status: 'processing'
+      }];
+
+      saveData();
+    }
+
+    /* ===============================
+       工具函数
+    ================================ */
+    function showMessage(message, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-[9999] ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function generateAssetId() {
+      const count = Object.keys(assetsData).length + 1;
+      return `ASSET-${String(count).padStart(3, '0')}`;
+    }
+
+    function getStatusText(status) {
+      const statusMap = {
+        'available': '可用',
+        'borrowed': '已借出',
+        'maintenance': '维修中',
+        'scrapped': '已报废'
+      };
+      return statusMap[status] || status;
+    }
+
+    function getStatusClass(status) {
+      const classMap = {
+        'available': 'status-available',
+        'borrowed': 'status-borrowed',
+        'maintenance': 'status-maintenance',
+        'scrapped': 'status-scrapped'
+      };
+      return classMap[status] || '';
+    }
+
+    /* ===============================
+       统计更新
+    ================================ */
+    function updateStatistics() {
+      const total = Object.keys(assetsData).length;
+      const available = Object.values(assetsData).filter(a => a.status === 'available').length;
+      const borrowed = Object.values(assetsData).filter(a => a.status === 'borrowed').length;
+      const maintenance = Object.values(assetsData).filter(a => a.status === 'maintenance').length;
+
+      document.getElementById('totalAssets').textContent = total;
+      document.getElementById('availableAssets').textContent = available;
+      document.getElementById('borrowedAssets').textContent = borrowed;
+      document.getElementById('maintenanceAssets').textContent = maintenance;
+    }
+
+    /* ===============================
+       资产列表
+    ================================ */
+    function renderAssetsList() {
+      const container = document.getElementById('assetsList');
+      const assets = Object.values(assetsData);
+
+      if (assets.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">暂无资产数据</p>';
+        return;
+      }
+
+      container.innerHTML = assets.map(asset => `
+        <div class="glass-effect rounded-xl p-4 card-hover cursor-pointer" onclick="viewAssetDetail('${asset.id}')">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="text-lg font-semibold text-gray-800">${asset.name}</h4>
+              <p class="text-sm text-gray-600">${asset.id}</p>
+            </div>
+            <span class="status-badge ${getStatusClass(asset.status)}">${getStatusText(asset.status)}</span>
+          </div>
+          <div class="space-y-1 text-sm text-gray-600">
+            <p>📂 分类：${asset.category}</p>
+            <p>📍 位置：${asset.location}</p>
+            <p>💰 价格：¥${asset.price?.toLocaleString() || '0'}</p>
+            ${asset.barcode ? `<p>🏷️ 条码：${asset.barcode}</p>` : ''}
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button onclick="event.stopPropagation(); editAsset('${asset.id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-lg transition">编辑</button>
+            <button onclick="event.stopPropagation(); deleteAsset('${asset.id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterAssets() {
+      const search = document.getElementById('searchAsset').value.toLowerCase();
+      const category = document.getElementById('filterCategory').value;
+      const status = document.getElementById('filterStatus').value;
+
+      let filtered = Object.values(assetsData);
+
+      if (search) {
+        filtered = filtered.filter(a =>
+          a.name.toLowerCase().includes(search) ||
+          a.id.toLowerCase().includes(search) ||
+          (a.barcode && a.barcode.toLowerCase().includes(search))
+        );
+      }
+
+      if (category) {
+        filtered = filtered.filter(a => a.category === category);
+      }
+
+      if (status) {
+        filtered = filtered.filter(a => a.status === status);
+      }
+
+      const container = document.getElementById('assetsList');
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">没有找到匹配的资产</p>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(asset => `
+        <div class="glass-effect rounded-xl p-4 card-hover cursor-pointer" onclick="viewAssetDetail('${asset.id}')">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="text-lg font-semibold text-gray-800">${asset.name}</h4>
+              <p class="text-sm text-gray-600">${asset.id}</p>
+            </div>
+            <span class="status-badge ${getStatusClass(asset.status)}">${getStatusText(asset.status)}</span>
+          </div>
+          <div class="space-y-1 text-sm text-gray-600">
+            <p>📂 分类：${asset.category}</p>
+            <p>📍 位置：${asset.location}</p>
+            <p>💰 价格：¥${asset.price?.toLocaleString() || '0'}</p>
+            ${asset.barcode ? `<p>🏷️ 条码：${asset.barcode}</p>` : ''}
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button onclick="event.stopPropagation(); editAsset('${asset.id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-lg transition">编辑</button>
+            <button onclick="event.stopPropagation(); deleteAsset('${asset.id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function viewAssetDetail(assetId) {
+      const asset = assetsData[assetId];
+      if (!asset) return;
+
+      const content = document.getElementById('assetDetailContent');
+      content.innerHTML = `
+        <div class="space-y-6">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">资产编号</p>
+              <p class="text-lg font-semibold">${asset.id}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">资产名称</p>
+              <p class="text-lg font-semibold">${asset.name}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">分类</p>
+              <p class="text-lg font-semibold">${asset.category}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">状态</p>
+              <span class="status-badge ${getStatusClass(asset.status)}">${getStatusText(asset.status)}</span>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">购买日期</p>
+              <p class="text-lg font-semibold">${asset.purchaseDate}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">价格</p>
+              <p class="text-lg font-semibold">¥${asset.price?.toLocaleString() || '0'}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">存放位置</p>
+              <p class="text-lg font-semibold">${asset.location}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">条码号</p>
+              <p class="text-lg font-semibold">${asset.barcode || '无'}</p>
+            </div>
+          </div>
+          ${asset.description ? `
+            <div>
+              <p class="text-sm text-gray-600">资产描述</p>
+              <p class="text-gray-800">${asset.description}</p>
+            </div>
+          ` : ''}
+
+          ${asset.borrowHistory && asset.borrowHistory.length > 0 ? `
+            <div>
+              <h4 class="text-lg font-semibold text-gray-800 mb-3">借用历史</h4>
+              <div class="space-y-2">
+                ${asset.borrowHistory.map(record => `
+                  <div class="bg-gray-50 rounded-lg p-3">
+                    <p><strong>借用人：</strong>${record.borrower}</p>
+                    <p><strong>借用日期：</strong>${record.borrowDate}</p>
+                    <p><strong>归还日期：</strong>${record.returnDate || '未归还'}</p>
+                    ${record.note ? `<p><strong>备注：</strong>${record.note}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${asset.maintenanceHistory && asset.maintenanceHistory.length > 0 ? `
+            <div>
+              <h4 class="text-lg font-semibold text-gray-800 mb-3">维修历史</h4>
+              <div class="space-y-2">
+                ${asset.maintenanceHistory.map(record => `
+                  <div class="bg-gray-50 rounded-lg p-3">
+                    <p><strong>维修日期：</strong>${record.date}</p>
+                    <p><strong>故障描述：</strong>${record.issue}</p>
+                    ${record.solution ? `<p><strong>维修方案：</strong>${record.solution}</p>` : ''}
+                    ${record.cost ? `<p><strong>费用：</strong>¥${record.cost}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.getElementById('assetDetailModal').classList.remove('hidden');
+    }
+
+    function closeAssetDetail() {
+      document.getElementById('assetDetailModal').classList.add('hidden');
+    }
+
+    /* ===============================
+       新增/编辑/删除资产
+    ================================ */
+    function openAddAssetModal() {
+      document.getElementById('assetId').value = generateAssetId();
+      document.getElementById('purchaseDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('addAssetModal').classList.remove('hidden');
+    }
+
+    function closeAddAssetModal() {
+      document.getElementById('addAssetModal').classList.add('hidden');
+      document.getElementById('assetForm').reset();
+    }
+
+    function editAsset(assetId) {
+      const asset = assetsData[assetId];
+      if (!asset) return;
+
+      document.getElementById('assetId').value = asset.id;
+      document.getElementById('assetName').value = asset.name;
+      document.getElementById('assetCategory').value = asset.category;
+      document.getElementById('assetBarcode').value = asset.barcode || '';
+      document.getElementById('purchaseDate').value = asset.purchaseDate;
+      document.getElementById('assetPrice').value = asset.price;
+      document.getElementById('assetLocation').value = asset.location;
+      document.getElementById('assetStatus').value = asset.status;
+      document.getElementById('assetDescription').value = asset.description || '';
+
+      document.getElementById('addAssetModal').classList.remove('hidden');
+    }
+
+    function deleteAsset(assetId) {
+      if (!confirm('确定要删除这个资产吗？')) return;
+
+      delete assetsData[assetId];
+      saveData();
+      renderAssetsList();
+      updateStatistics();
+      showMessage('资产删除成功！', 'success');
+    }
+
+    /* ===============================
+       借用/归还管理
+    ================================ */
+    function renderBorrowedList() {
+      const container = document.getElementById('borrowedList');
+      const borrowed = Object.values(assetsData).filter(a => a.status === 'borrowed');
+
+      if (borrowed.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无借出的资产</p>';
+        return;
+      }
+
+      container.innerHTML = borrowed.map(asset => {
+        const currentBorrow = asset.borrowHistory.find(h => h.status === 'borrowed');
+        if (!currentBorrow) return '';
+
+        return `
+          <div class="glass-effect rounded-lg p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <h4 class="font-semibold text-gray-800">${asset.name}</h4>
+                <p class="text-sm text-gray-600">${asset.id}</p>
+              </div>
+              <button onclick="returnAsset('${asset.id}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition">归还</button>
+            </div>
+            <div class="text-sm text-gray-600 space-y-1">
+              <p>👤 借用人：${currentBorrow.borrower}</p>
+              <p>📅 借用日期：${currentBorrow.borrowDate}</p>
+              <p>⏰ 预计归还：${currentBorrow.expectedReturnDate}</p>
+              ${currentBorrow.note ? `<p>📝 备注：${currentBorrow.note}</p>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function returnAsset(assetId) {
+      const asset = assetsData[assetId];
+      if (!asset) return;
+
+      const currentBorrow = asset.borrowHistory.find(h => h.status === 'borrowed');
+      if (currentBorrow) {
+        currentBorrow.status = 'returned';
+        currentBorrow.returnDate = new Date().toISOString().split('T')[0];
+      }
+
+      asset.status = 'available';
+      saveData();
+      renderBorrowedList();
+      renderAssetsList();
+      updateStatistics();
+      showMessage('归还成功！', 'success');
+    }
+
+    /* ===============================
+       维修记录
+    ================================ */
+    function renderMaintenanceList() {
+      const container = document.getElementById('maintenanceList');
+      let allRecords = [];
+
+      Object.values(assetsData).forEach(asset => {
+        if (asset.maintenanceHistory && asset.maintenanceHistory.length > 0) {
+          asset.maintenanceHistory.forEach(record => {
+            allRecords.push({
+              ...record,
+              assetId: asset.id,
+              assetName: asset.name
+            });
+          });
+        }
+      });
+
+      if (allRecords.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无维修记录</p>';
+        return;
+      }
+
+      allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      container.innerHTML = allRecords.map(record => `
+        <div class="glass-effect rounded-lg p-4">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h4 class="font-semibold text-gray-800">${record.assetName}</h4>
+              <p class="text-sm text-gray-600">${record.assetId}</p>
+            </div>
+            <span class="status-badge ${record.status === 'completed' ? 'status-available' : 'status-maintenance'}">
+              ${record.status === 'completed' ? '已完成' : record.status === 'processing' ? '维修中' : '待维修'}
+            </span>
+          </div>
+          <div class="text-sm text-gray-600 space-y-1">
+            <p>📅 维修日期：${record.date}</p>
+            <p>🔧 故障描述：${record.issue}</p>
+            ${record.solution ? `<p>✅ 维修方案：${record.solution}</p>` : ''}
+            ${record.cost ? `<p>💰 维修费用：¥${record.cost}</p>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ===============================
+       报废管理
+    ================================ */
+    function renderScrappedList() {
+      const container = document.getElementById('scrappedList');
+      const scrapped = Object.values(assetsData).filter(a => a.status === 'scrapped');
+
+      if (scrapped.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无报废资产</p>';
+        return;
+      }
+
+      container.innerHTML = scrapped.map(asset => `
+        <div class="glass-effect rounded-lg p-4">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-semibold text-gray-800">${asset.name}</h4>
+              <p class="text-sm text-gray-600">${asset.id}</p>
+              <div class="text-sm text-gray-600 mt-2 space-y-1">
+                <p>📅 报废日期：${asset.scrapDate || ''}</p>
+                <p>📝 报废原因：${asset.scrapReason || ''}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ===============================
+       使用历史
+    ================================ */
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      let allHistory = [];
+
+      Object.values(assetsData).forEach(asset => {
+        if (asset.borrowHistory && asset.borrowHistory.length > 0) {
+          asset.borrowHistory.forEach(record => {
+            allHistory.push({
+              ...record,
+              assetId: asset.id,
+              assetName: asset.name,
+              type: 'borrow'
+            });
+          });
+        }
+      });
+
+      allHistory.sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate));
+
+      if (allHistory.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无使用历史</p>';
+        return;
+      }
+
+      container.innerHTML = allHistory.map(record => `
+        <div class="glass-effect rounded-lg p-4">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-800">${record.assetName}</h4>
+              <p class="text-sm text-gray-600">${record.assetId}</p>
+              <div class="text-sm text-gray-600 mt-2 space-y-1">
+                <p>👤 借用人：${record.borrower}</p>
+                <p>📅 借用日期：${record.borrowDate}</p>
+                <p>📅 归还日期：${record.returnDate || '未归还'}</p>
+                ${record.note ? `<p>📝 备注：${record.note}</p>` : ''}
+              </div>
+            </div>
+            <span class="status-badge ${record.status === 'returned' ? 'status-available' : 'status-borrowed'}">
+              ${record.status === 'returned' ? '已归还' : '借用中'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterHistory() {
+      const search = document.getElementById('historySearch').value.toLowerCase();
+      let allHistory = [];
+
+      Object.values(assetsData).forEach(asset => {
+        if (asset.borrowHistory && asset.borrowHistory.length > 0) {
+          asset.borrowHistory.forEach(record => {
+            allHistory.push({
+              ...record,
+              assetId: asset.id,
+              assetName: asset.name
+            });
+          });
+        }
+      });
+
+      if (search) {
+        allHistory = allHistory.filter(h =>
+          h.assetId.toLowerCase().includes(search) ||
+          h.assetName.toLowerCase().includes(search) ||
+          h.borrower.toLowerCase().includes(search)
+        );
+      }
+
+      allHistory.sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate));
+
+      const container = document.getElementById('historyList');
+      if (allHistory.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">没有找到匹配的记录</p>';
+        return;
+      }
+
+      container.innerHTML = allHistory.map(record => `
+        <div class="glass-effect rounded-lg p-4">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-800">${record.assetName}</h4>
+              <p class="text-sm text-gray-600">${record.assetId}</p>
+              <div class="text-sm text-gray-600 mt-2 space-y-1">
+                <p>👤 借用人：${record.borrower}</p>
+                <p>📅 借用日期：${record.borrowDate}</p>
+                <p>📅 归还日期：${record.returnDate || '未归还'}</p>
+                ${record.note ? `<p>📝 备注：${record.note}</p>` : ''}
+              </div>
+            </div>
+            <span class="status-badge ${record.status === 'returned' ? 'status-available' : 'status-borrowed'}">
+              ${record.status === 'returned' ? '已归还' : '借用中'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ===============================
+       Tab 切换
+    ================================ */
+    function switchTab(tabName) {
+      // 隐藏所有 tab content
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+      // 移除所有 active 状态
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+      // 显示当前 tab
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+      // 根据 tab 渲染对应内容
+      switch(tabName) {
+        case 'assets':
+          renderAssetsList();
+          break;
+        case 'borrow':
+          renderBorrowedList();
+          break;
+        case 'maintenance':
+          renderMaintenanceList();
+          break;
+        case 'scrapped':
+          renderScrappedList();
+          break;
+        case 'history':
+          renderHistory();
+          break;
+        case 'charts':
+          renderCharts();
+          break;
+      }
+    }
+
+    /* ===============================
+       条码扫描
+    ================================ */
+    let barcodeScanner = null;
+
+    function openBarcodeScanner() {
+      document.getElementById('barcodeScannerModal').classList.remove('hidden');
+      document.getElementById('manualBarcode').focus();
+
+      // 启动摄像头扫描
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        startCameraScanner();
+      }
+    }
+
+    function closeBarcodeScanner() {
+      document.getElementById('barcodeScannerModal').classList.add('hidden');
+      if (barcodeScanner) {
+        Quagga.stop();
+        barcodeScanner = null;
+      }
+    }
+
+    function startCameraScanner() {
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#barcode-scanner'),
+          constraints: {
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader"]
+        }
+      }, function(err) {
+        if (err) {
+          console.error('摄像头初始化失败', err);
+          showMessage('摄像头启动失败，请使用手动输入', 'error');
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.onDetected(function(result) {
+        const code = result.codeResult.code;
+        document.getElementById('manualBarcode').value = code;
+        Quagga.stop();
+        searchAssetByBarcode();
+      });
+    }
+
+    function searchAssetByBarcode() {
+      const barcode = document.getElementById('manualBarcode').value.trim();
+      if (!barcode) {
+        showMessage('请输入条码号', 'error');
+        return;
+      }
+
+      const asset = Object.values(assetsData).find(a => a.barcode === barcode || a.id === barcode);
+
+      if (asset) {
+        closeBarcodeScanner();
+        viewAssetDetail(asset.id);
+      } else {
+        showMessage('未找到该资产', 'error');
+      }
+    }
+
+    // 扫码枪支持（监听快速输入）
+    let barcodeBuffer = '';
+    let barcodeTimeout = null;
+
+    document.addEventListener('keypress', function(e) {
+      // 如果在输入框中，不处理
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      clearTimeout(barcodeTimeout);
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 3) {
+          // 扫码枪输入完成
+          const asset = Object.values(assetsData).find(a => a.barcode === barcodeBuffer || a.id === barcodeBuffer);
+          if (asset) {
+            viewAssetDetail(asset.id);
+          }
+          barcodeBuffer = '';
+        }
+      } else {
+        barcodeBuffer += e.key;
+        barcodeTimeout = setTimeout(() => {
+          barcodeBuffer = '';
+        }, 100);
+      }
+    });
+
+    /* ===============================
+       盘点功能
+    ================================ */
+    function openInventoryModal() {
+      currentInventory = [];
+      document.getElementById('inventoryDate').textContent = new Date().toLocaleDateString('zh-CN');
+      document.getElementById('inventoryModal').classList.remove('hidden');
+      document.getElementById('inventoryBarcode').focus();
+      renderInventoryList();
+    }
+
+    function closeInventoryModal() {
+      document.getElementById('inventoryModal').classList.add('hidden');
+    }
+
+    function addToInventory() {
+      const barcode = document.getElementById('inventoryBarcode').value.trim();
+      if (!barcode) {
+        showMessage('请输入资产条码', 'error');
+        return;
+      }
+
+      const asset = Object.values(assetsData).find(a => a.barcode === barcode || a.id === barcode);
+
+      if (!asset) {
+        showMessage('未找到该资产', 'error');
+        return;
+      }
+
+      if (currentInventory.find(item => item.id === asset.id)) {
+        showMessage('该资产已在盘点列表中', 'error');
+        return;
+      }
+
+      currentInventory.push({
+        id: asset.id,
+        name: asset.name,
+        category: asset.category,
+        status: asset.status,
+        time: new Date().toLocaleTimeString('zh-CN')
+      });
+
+      // 记录盘点历史
+      if (!asset.inventoryHistory) {
+        asset.inventoryHistory = [];
+      }
+      asset.inventoryHistory.push({
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('zh-CN')
+      });
+
+      saveData();
+      document.getElementById('inventoryBarcode').value = '';
+      renderInventoryList();
+      showMessage('添加成功', 'success');
+    }
+
+    function renderInventoryList() {
+      const container = document.getElementById('inventoryList');
+
+      if (currentInventory.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">开始扫描资产条码进行盘点</p>';
+        return;
+      }
+
+      container.innerHTML = currentInventory.map((item, index) => `
+        <div class="glass-effect rounded-lg p-3 flex justify-between items-center">
+          <div class="flex-1">
+            <span class="font-semibold">${index + 1}. ${item.name}</span>
+            <span class="text-sm text-gray-600 ml-2">(${item.id})</span>
+            <span class="text-xs text-gray-500 ml-2">${item.time}</span>
+          </div>
+          <span class="status-badge ${getStatusClass(item.status)}">${getStatusText(item.status)}</span>
+        </div>
+      `).join('');
+    }
+
+    function exportInventory() {
+      if (currentInventory.length === 0) {
+        showMessage('盘点列表为空', 'error');
+        return;
+      }
+
+      const date = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
+      let content = `资产盘点报告\n`;
+      content += `盘点日期：${date}\n`;
+      content += `盘点数量：${currentInventory.length}\n\n`;
+      content += `序号\t资产编号\t资产名称\t分类\t状态\t盘点时间\n`;
+
+      currentInventory.forEach((item, index) => {
+        content += `${index + 1}\t${item.id}\t${item.name}\t${item.category}\t${getStatusText(item.status)}\t${item.time}\n`;
+      });
+
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `资产盘点报告_${date}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showMessage('报告导出成功', 'success');
+    }
+
+    /* ===============================
+       统计图表
+    ================================ */
+    function renderCharts() {
+      renderStatusChart();
+      renderCategoryChart();
+      renderBorrowTrendChart();
+      renderMaintenanceCostChart();
+    }
+
+    function renderStatusChart() {
+      const ctx = document.getElementById('statusChart');
+      if (!ctx) return;
+
+      if (charts.statusChart) {
+        charts.statusChart.destroy();
+      }
+
+      const statusCount = {
+        '可用': Object.values(assetsData).filter(a => a.status === 'available').length,
+        '已借出': Object.values(assetsData).filter(a => a.status === 'borrowed').length,
+        '维修中': Object.values(assetsData).filter(a => a.status === 'maintenance').length,
+        '已报废': Object.values(assetsData).filter(a => a.status === 'scrapped').length
+      };
+
+      charts.statusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statusCount),
+          datasets: [{
+            data: Object.values(statusCount),
+            backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderCategoryChart() {
+      const ctx = document.getElementById('categoryChart');
+      if (!ctx) return;
+
+      if (charts.categoryChart) {
+        charts.categoryChart.destroy();
+      }
+
+      const categoryCount = {};
+      Object.values(assetsData).forEach(asset => {
+        if (asset.status !== 'scrapped') {
+          categoryCount[asset.category] = (categoryCount[asset.category] || 0) + 1;
+        }
+      });
+
+      charts.categoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(categoryCount),
+          datasets: [{
+            label: '资产数量',
+            data: Object.values(categoryCount),
+            backgroundColor: '#667eea',
+            borderColor: '#764ba2',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderBorrowTrendChart() {
+      const ctx = document.getElementById('borrowTrendChart');
+      if (!ctx) return;
+
+      if (charts.borrowTrendChart) {
+        charts.borrowTrendChart.destroy();
+      }
+
+      // 统计最近6个月的借用次数
+      const monthlyData = {};
+      const today = new Date();
+
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[key] = 0;
+      }
+
+      Object.values(assetsData).forEach(asset => {
+        if (asset.borrowHistory) {
+          asset.borrowHistory.forEach(record => {
+            const month = record.borrowDate.substring(0, 7);
+            if (monthlyData.hasOwnProperty(month)) {
+              monthlyData[month]++;
+            }
+          });
+        }
+      });
+
+      charts.borrowTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Object.keys(monthlyData).map(m => m.substring(5) + '月'),
+          datasets: [{
+            label: '借用次数',
+            data: Object.values(monthlyData),
+            borderColor: '#4facfe',
+            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMaintenanceCostChart() {
+      const ctx = document.getElementById('maintenanceCostChart');
+      if (!ctx) return;
+
+      if (charts.maintenanceCostChart) {
+        charts.maintenanceCostChart.destroy();
+      }
+
+      // 统计每个资产的维修费用
+      const costData = {};
+      Object.values(assetsData).forEach(asset => {
+        if (asset.maintenanceHistory && asset.maintenanceHistory.length > 0) {
+          const totalCost = asset.maintenanceHistory.reduce((sum, record) => sum + (record.cost || 0), 0);
+          if (totalCost > 0) {
+            costData[asset.name] = totalCost;
+          }
+        }
+      });
+
+      if (Object.keys(costData).length === 0) {
+        costData['无维修记录'] = 0;
+      }
+
+      charts.maintenanceCostChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(costData),
+          datasets: [{
+            label: '维修费用（元）',
+            data: Object.values(costData),
+            backgroundColor: '#f093fb',
+            borderColor: '#f5576c',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    /* ===============================
+       表单提交事件
+    ================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+      loadData();
+      updateStatistics();
+      renderAssetsList();
+
+      // 新增资产表单
+      document.getElementById('assetForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const assetId = document.getElementById('assetId').value.trim();
+        const assetData = {
+          id: assetId,
+          name: document.getElementById('assetName').value.trim(),
+          category: document.getElementById('assetCategory').value,
+          barcode: document.getElementById('assetBarcode').value.trim(),
+          status: document.getElementById('assetStatus').value,
+          purchaseDate: document.getElementById('purchaseDate').value,
+          price: parseFloat(document.getElementById('assetPrice').value) || 0,
+          location: document.getElementById('assetLocation').value.trim(),
+          description: document.getElementById('assetDescription').value.trim(),
+          borrowHistory: assetsData[assetId]?.borrowHistory || [],
+          maintenanceHistory: assetsData[assetId]?.maintenanceHistory || [],
+          inventoryHistory: assetsData[assetId]?.inventoryHistory || []
+        };
+
+        assetsData[assetId] = assetData;
+        saveData();
+        closeAddAssetModal();
+        renderAssetsList();
+        updateStatistics();
+        showMessage('资产保存成功！', 'success');
+      });
+
+      // 借用表单
+      document.getElementById('borrowForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const assetId = document.getElementById('borrowAssetId').value.trim();
+        const asset = assetsData[assetId];
+
+        if (!asset) {
+          showMessage('资产不存在', 'error');
+          return;
+        }
+
+        if (asset.status !== 'available') {
+          showMessage('该资产当前不可借用', 'error');
+          return;
+        }
+
+        const borrowData = {
+          borrower: document.getElementById('borrower').value.trim(),
+          borrowDate: document.getElementById('borrowDate').value,
+          expectedReturnDate: document.getElementById('returnDate').value,
+          note: document.getElementById('borrowNote').value.trim(),
+          status: 'borrowed'
+        };
+
+        if (!asset.borrowHistory) {
+          asset.borrowHistory = [];
+        }
+        asset.borrowHistory.push(borrowData);
+        asset.status = 'borrowed';
+
+        saveData();
+        this.reset();
+        renderBorrowedList();
+        renderAssetsList();
+        updateStatistics();
+        showMessage('借用登记成功！', 'success');
+      });
+
+      // 维修表单
+      document.getElementById('maintenanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const assetId = document.getElementById('maintenanceAssetId').value.trim();
+        const asset = assetsData[assetId];
+
+        if (!asset) {
+          showMessage('资产不存在', 'error');
+          return;
+        }
+
+        const maintenanceData = {
+          date: document.getElementById('maintenanceDate').value,
+          issue: document.getElementById('maintenanceIssue').value.trim(),
+          solution: document.getElementById('maintenanceSolution').value.trim(),
+          cost: parseFloat(document.getElementById('maintenanceCost').value) || 0,
+          status: document.getElementById('maintenanceStatus').value
+        };
+
+        if (!asset.maintenanceHistory) {
+          asset.maintenanceHistory = [];
+        }
+        asset.maintenanceHistory.push(maintenanceData);
+
+        if (maintenanceData.status !== 'completed') {
+          asset.status = 'maintenance';
+        }
+
+        saveData();
+        this.reset();
+        renderMaintenanceList();
+        renderAssetsList();
+        updateStatistics();
+        showMessage('维修记录添加成功！', 'success');
+      });
+
+      // 报废表单
+      document.getElementById('scrapForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const assetId = document.getElementById('scrapAssetId').value.trim();
+        const asset = assetsData[assetId];
+
+        if (!asset) {
+          showMessage('资产不存在', 'error');
+          return;
+        }
+
+        if (!confirm('确定要报废这个资产吗？此操作不可撤销！')) {
+          return;
+        }
+
+        asset.status = 'scrapped';
+        asset.scrapDate = document.getElementById('scrapDate').value;
+        asset.scrapReason = document.getElementById('scrapReason').value.trim();
+
+        saveData();
+        this.reset();
+        renderScrappedList();
+        renderAssetsList();
+        updateStatistics();
+        showMessage('资产已报废', 'success');
+      });
+
+      // 设置今天日期为默认值
+      document.getElementById('borrowDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('maintenanceDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('scrapDate').value = new Date().toISOString().split('T')[0];
+
+      showMessage('资产管理系统已加载完成！', 'success');
+    });
+  </script>
+</body>
+</html>
