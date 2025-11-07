@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理系统入口</title>
+  <title>資產管理系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -31,93 +31,102 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-15px); }
     }
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
   </style>
 </head>
 <body class="gradient-bg">
   <div class="min-h-screen flex items-center justify-center p-6">
-    <div class="max-w-6xl w-full">
-      <!-- 标题 -->
+    <div class="max-w-4xl w-full">
+      <!-- 標題 -->
       <div class="text-center mb-12 floating">
-        <h1 class="text-5xl font-bold text-white mb-4">欢迎使用管理系统</h1>
-        <p class="text-xl text-white/80">请选择您要进入的系统</p>
+        <div class="text-8xl mb-6">📦</div>
+        <h1 class="text-5xl font-bold text-white mb-4">資產管理系統</h1>
+        <p class="text-xl text-white/80">管理設備資產，支援條碼掃描</p>
       </div>
 
-      <!-- 系统选择卡片 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- 资产管理系统 -->
-        <a href="asset-management.html" class="card rounded-3xl p-8 block group">
-          <div class="text-center">
-            <div class="text-7xl mb-6 transform group-hover:scale-110 transition-transform">📦</div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">资产管理系统</h2>
-            <p class="text-gray-600 mb-6 leading-relaxed">
-              管理设备资产，支持条码扫描、借用归还、维修记录、盘点统计等功能
-            </p>
-            <div class="space-y-2 text-sm text-gray-500">
-              <div class="flex items-center justify-center space-x-2">
-                <span>📷</span>
-                <span>支持iPhone摄像头扫码</span>
-              </div>
-              <div class="flex items-center justify-center space-x-2">
-                <span>📱</span>
-                <span>移动端优化</span>
-              </div>
-              <div class="flex items-center justify-center space-x-2">
-                <span>📊</span>
-                <span>实时统计分析</span>
-              </div>
+      <!-- 主卡片 -->
+      <a href="asset-management.html" class="card rounded-3xl p-12 block group">
+        <div class="text-center">
+          <h2 class="text-3xl font-bold text-gray-800 mb-6">點擊進入系統</h2>
+          <p class="text-gray-600 mb-8 leading-relaxed text-lg">
+            完整的資產管理解決方案，支援條碼掃描、借用歸還、維修記錄、盤點統計等功能
+          </p>
+
+          <!-- 功能特色 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4">
+              <div class="text-3xl mb-2">📷</div>
+              <div class="font-semibold text-gray-800">支援iPhone攝影機掃碼</div>
+              <div class="text-sm text-gray-600 mt-1">HTTPS環境，完美支援</div>
             </div>
-            <div class="mt-8">
-              <span class="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg group-hover:shadow-xl transition-shadow">
-                进入系统 →
-              </span>
+
+            <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4">
+              <div class="text-3xl mb-2">📱</div>
+              <div class="font-semibold text-gray-800">移動端優化</div>
+              <div class="text-sm text-gray-600 mt-1">響應式設計，隨時隨地使用</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4">
+              <div class="text-3xl mb-2">📊</div>
+              <div class="font-semibold text-gray-800">實時統計分析</div>
+              <div class="text-sm text-gray-600 mt-1">多種圖表，數據可視化</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4">
+              <div class="text-3xl mb-2">🔧</div>
+              <div class="font-semibold text-gray-800">完整管理功能</div>
+              <div class="text-sm text-gray-600 mt-1">登記、借用、維修、盤點</div>
             </div>
           </div>
-        </a>
 
-        <!-- 师资派课系统 -->
-        <a href="README.md" class="card rounded-3xl p-8 block group">
-          <div class="text-center">
-            <div class="text-7xl mb-6 transform group-hover:scale-110 transition-transform">📚</div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">师资派课系统</h2>
-            <p class="text-gray-600 mb-6 leading-relaxed">
-              管理教师课程安排，支持课程管理、行事历、统计分析等功能
-            </p>
-            <div class="space-y-2 text-sm text-gray-500">
-              <div class="flex items-center justify-center space-x-2">
-                <span>👨‍🏫</span>
-                <span>师资管理</span>
-              </div>
-              <div class="flex items-center justify-center space-x-2">
-                <span>📅</span>
-                <span>课程行事历</span>
-              </div>
-              <div class="flex items-center justify-center space-x-2">
-                <span>📈</span>
-                <span>数据可视化</span>
-              </div>
-            </div>
-            <div class="mt-8">
-              <span class="inline-block bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg group-hover:shadow-xl transition-shadow">
-                查看文档 →
-              </span>
-            </div>
+          <!-- 進入按鈕 -->
+          <div class="mt-8">
+            <span class="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-12 py-4 rounded-xl font-semibold text-xl group-hover:shadow-2xl transition-all group-hover:scale-105">
+              開始使用 →
+            </span>
           </div>
-        </a>
-      </div>
+        </div>
+      </a>
 
-      <!-- 底部说明 -->
+      <!-- 底部說明 -->
       <div class="mt-12 text-center">
         <div class="inline-block bg-white/20 backdrop-blur-md rounded-2xl px-8 py-4 text-white">
           <p class="text-sm">
             <span class="font-semibold">💡 提示：</span>
-            资产管理系统已部署到HTTPS，iPhone可直接使用摄像头扫码功能！
+            系統已部署到HTTPS，iPhone可直接使用攝影機掃碼功能！
           </p>
         </div>
       </div>
 
-      <!-- 版本信息 -->
+      <!-- 快速功能說明 -->
+      <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">➕</div>
+          <div class="text-white text-sm font-medium">資產登記</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">📤</div>
+          <div class="text-white text-sm font-medium">借用歸還</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">🔧</div>
+          <div class="text-white text-sm font-medium">維修記錄</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">📋</div>
+          <div class="text-white text-sm font-medium">資產盤點</div>
+        </div>
+      </div>
+
+      <!-- 版本資訊 -->
       <div class="mt-8 text-center text-white/60 text-sm">
-        <p>Version 1.0.0 | Created with ❤️</p>
+        <p>Version 1.0.0 | Asset Management System</p>
       </div>
     </div>
   </div>
