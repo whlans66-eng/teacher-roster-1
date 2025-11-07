@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理系统入口</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+    }
+    .floating {
+      animation: floating 3s ease-in-out infinite;
+    }
+    @keyframes floating {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+  </style>
+</head>
+<body class="gradient-bg">
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-6xl w-full">
+      <!-- 标题 -->
+      <div class="text-center mb-12 floating">
+        <h1 class="text-5xl font-bold text-white mb-4">欢迎使用管理系统</h1>
+        <p class="text-xl text-white/80">请选择您要进入的系统</p>
+      </div>
+
+      <!-- 系统选择卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- 资产管理系统 -->
+        <a href="asset-management.html" class="card rounded-3xl p-8 block group">
+          <div class="text-center">
+            <div class="text-7xl mb-6 transform group-hover:scale-110 transition-transform">📦</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">资产管理系统</h2>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+              管理设备资产，支持条码扫描、借用归还、维修记录、盘点统计等功能
+            </p>
+            <div class="space-y-2 text-sm text-gray-500">
+              <div class="flex items-center justify-center space-x-2">
+                <span>📷</span>
+                <span>支持iPhone摄像头扫码</span>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <span>📱</span>
+                <span>移动端优化</span>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <span>📊</span>
+                <span>实时统计分析</span>
+              </div>
+            </div>
+            <div class="mt-8">
+              <span class="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg group-hover:shadow-xl transition-shadow">
+                进入系统 →
+              </span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 师资派课系统 -->
+        <a href="README.md" class="card rounded-3xl p-8 block group">
+          <div class="text-center">
+            <div class="text-7xl mb-6 transform group-hover:scale-110 transition-transform">📚</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">师资派课系统</h2>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+              管理教师课程安排，支持课程管理、行事历、统计分析等功能
+            </p>
+            <div class="space-y-2 text-sm text-gray-500">
+              <div class="flex items-center justify-center space-x-2">
+                <span>👨‍🏫</span>
+                <span>师资管理</span>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <span>📅</span>
+                <span>课程行事历</span>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <span>📈</span>
+                <span>数据可视化</span>
+              </div>
+            </div>
+            <div class="mt-8">
+              <span class="inline-block bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg group-hover:shadow-xl transition-shadow">
+                查看文档 →
+              </span>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- 底部说明 -->
+      <div class="mt-12 text-center">
+        <div class="inline-block bg-white/20 backdrop-blur-md rounded-2xl px-8 py-4 text-white">
+          <p class="text-sm">
+            <span class="font-semibold">💡 提示：</span>
+            资产管理系统已部署到HTTPS，iPhone可直接使用摄像头扫码功能！
+          </p>
+        </div>
+      </div>
+
+      <!-- 版本信息 -->
+      <div class="mt-8 text-center text-white/60 text-sm">
+        <p>Version 1.0.0 | Created with ❤️</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
