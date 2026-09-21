@@ -1,0 +1,120 @@
+# ───────────────────────────────────────────────────────────────
+# herdr 設定檔
+#
+# 放置位置：
+#   macOS / Linux   ~/.config/herdr/config.toml
+#   Windows         %APPDATA%\herdr\config.toml
+#
+# 不確定路徑就執行 `herdr --help`，它會印出這台機器實際使用的路徑。
+# 改完之後執行 `herdr server reload-config`（或在 herdr 裡按 ctrl+b shift+r）生效。
+# 完整可用選項：`herdr --default-config`
+# ───────────────────────────────────────────────────────────────
+
+# 已經看過首次啟動導覽，不用再顯示
+onboarding = false
+
+
+[theme]
+# 內建主題：catppuccin, terminal, tokyo-night, dracula, nord,
+#           gruvbox, one-dark, solarized, kanagawa, rose-pine, vesper
+name = "catppuccin"
+# 跟著終端機的淺色/深色外觀自動切換
+auto_switch = true
+light_name = "catppuccin-latte"
+dark_name = "catppuccin"
+
+
+[terminal]
+# 新 pane / tab 沿用來源的工作目錄，開新分割時不會跳回家目錄
+new_cwd = "follow"
+
+
+[keys]
+# 前綴鍵，預設 ctrl+b（跟 tmux 一樣）。按 ctrl+b ? 可列出目前所有按鍵。
+prefix = "ctrl+b"
+
+# 中文輸入法開著的時候，ctrl+b 這類前綴鍵常常會被 IME 吃掉。
+# 這裡每個動作都多綁一組不需要前綴的 ctrl+alt 快捷鍵當備援
+# （ctrl+alt 是各家終端機/作業系統裡少數還沒被佔用的修飾鍵組合）。
+focus_pane_left  = ["prefix+h", "ctrl+alt+h"]
+focus_pane_down  = ["prefix+j", "ctrl+alt+j"]
+focus_pane_up    = ["prefix+k", "ctrl+alt+k"]
+focus_pane_right = ["prefix+l", "ctrl+alt+l"]
+new_tab          = ["prefix+c", "ctrl+alt+c"]
+next_tab         = ["prefix+n", "ctrl+alt+]"]
+previous_tab     = ["prefix+p", "ctrl+alt+["]
+split_vertical   = ["prefix+v", "ctrl+alt+d"]
+zoom             = ["prefix+z", "ctrl+alt+z"]
+
+# 數字鍵快速跳轉
+switch_tab       = "prefix+1..9"
+switch_workspace = "prefix+shift+1..9"
+focus_agent      = "prefix+alt+1..9"
+
+# ctrl+b t 開一個浮動的臨時終端，關掉就消失，不影響現有分割
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "exec \"${SHELL:-sh}\""
+description = "臨時終端"
+width = "80%"
+height = "80%"
+
+# 有裝 lazygit 的話把下面三行的註解拿掉
+# [[keys.command]]
+# key = "prefix+alt+g"
+# type = "popup"
+# command = "lazygit"
+# description = "lazygit"
+# width = "80%"
+# height = "80%"
+
+
+[ui]
+# 用不同符號區分 blocked / working / done / idle，比預設的彩色圓點好認
+status_indicators = "symbols"
+# 側邊欄改成「誰需要你」優先排序，卡住的 agent 會排到最前面
+agent_panel_sort = "priority"
+window_title = "{hostname}: {workspace}"
+
+# Windows / WSL 專用：中文輸入法的候選字視窗跑掉或游標閃動時，改用原生游標。
+# macOS 和 Linux 不需要這行，保持註解。
+# host_cursor = "native"
+
+
+[ui.toast]
+# agent 在背景改變狀態時的通知方式：
+#   system   = 交給作業系統的通知中心（走開也看得到，建議用這個）
+#   herdr    = 只在 herdr 畫面內顯示
+#   terminal = 請外層終端機發通知
+#   off      = 關閉
+# 如果設 system 之後完全沒有通知，改成 herdr 就一定會顯示。
+delivery = "system"
+delay_seconds = 1
+
+
+[ui.sound]
+# agent 在背景工作區改變狀態時發出提示音
+enabled = true
+
+
+[session]
+# herdr server 重啟後，把支援的 agent pane 接回它原本的對話
+resume_agents_on_restore = true
+
+
+[experimental]
+# 中文輸入法相關（實測對 Claude Code 這類自己繪製游標的 TUI 很有感）：
+#
+# 把焦點 pane 的游標露給外層終端機，讓輸入法的候選字視窗跟著游標走，
+# 不會固定黏在畫面角落。
+reveal_hidden_cursor_for_cjk_ime = true
+# 只對這些 agent 生效，避免其他程式多出一個游標
+cjk_ime_agents = ["claude", "codex"]
+
+# 前綴模式啟動時暫時切到 ASCII 輸入法，讓 ctrl+b 開頭的指令不會被 IME 吃掉，
+# 回到一般輸入時自動切回來。
+#   macOS   有效（切到 ASCII 鍵盤配置）
+#   Windows 目前只支援韓文 IME，中文 IME 不會有作用
+#   Linux   沒有作用
+switch_ascii_input_source_in_prefix = true
